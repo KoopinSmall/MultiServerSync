@@ -33,7 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Plugin(
         id = "multi-server-sync",
         name = "multi-server-sync",
-        version = "1.0-SNAPSHOT"
+        version = "1.2.0"
 )
 @Getter
 public class ProxySyncPlugin {

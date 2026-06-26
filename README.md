@@ -1,5 +1,14 @@
 # MultiServerSync
 
+[![License](https://img.shields.io/badge/license-MIT-green?style=flat)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/KoopinSmall/MultiServerSync?style=flat)](https://github.com/KoopinSmall/MultiServerSync/releases)
+![Java](https://img.shields.io/badge/Java-17+-orange?style=flat&logo=openjdk)
+![Paper](https://img.shields.io/badge/Paper-1.16+-blue?style=flat)
+![Velocity](https://img.shields.io/badge/Velocity-3.4.x-blue?style=flat)
+![Redis](https://img.shields.io/badge/Redis-backed-red?style=flat&logo=redis&logoColor=white)
+
+**English** · [Русский](README.ru.md)
+
 A Redis-backed sync layer for a Minecraft network running Velocity proxies in front of Paper backends.
 
 I built this for my own network and have been running, breaking and refining it for about three years. It's been in production the whole time, and at its peak it kept things in sync across multiple proxies at 1000+ concurrent players without falling over. This repo is that code, cleaned up for public use.
@@ -57,7 +66,7 @@ Both jars are shaded and self-contained, no extra plugins to install.
 
 ## Building
 
-`mss-core` has to be installed first since the plugins resolve it from your local repo:
+Prebuilt jars are attached to every [release](https://github.com/KoopinSmall/MultiServerSync/releases) — grab those if you just want to run it. To build from source, `mss-core` has to be installed first since the plugins resolve it from your local repo:
 
 ```bash
 mvn -pl core -am clean install
