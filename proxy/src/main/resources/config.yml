@@ -1,0 +1,15 @@
+project: koopin
+proxy: proxy-1
+
+redis:
+  host: "127.0.0.1"
+  port: 6379
+  password: "supersecret"
+
+server-groups:
+  hub:
+    - 'hub-1'
+    - 'hub-2'
+  anarchy:
+    - 'anarchy-1'
+    - 'anarchy-2'

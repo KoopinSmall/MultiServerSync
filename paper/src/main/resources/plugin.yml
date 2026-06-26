@@ -1,0 +1,11 @@
+name: MultiServerSync
+version: '${project.version}'
+main: uz.koopin.mss.PaperSyncPlugin
+api-version: '1.16'
+softdepend:
+  - PlaceholderAPI
+commands:
+  sync:
+    description: Синхронизация команд между серверами
+    usage: /sync [-g] <target> <command>
+    permission: mss.command.sync

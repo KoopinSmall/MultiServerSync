@@ -1,0 +1,11 @@
+project: koopin
+
+server:
+  register: true
+  host: "auto"
+  port: 0
+
+redis:
+  host: "127.0.0.1"
+  port: 6379
+  password: "supersecret"
