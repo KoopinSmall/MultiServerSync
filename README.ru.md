@@ -260,6 +260,8 @@ SyncContext.put(MyService.class, myServiceInstance);
 
 Грабли, которые стоит повторить: имя класса пакета **и есть** его идентификатор в протоколе. Переименуешь или перенесёшь класс пакета — сломаешь каждый пир, который ещё крутит старое имя. Держи типы пакетов в общем модуле и относись к их переносу как к изменению протокола.
 
+Регистрация бэкендов в этом плагине устроена ровно так: бэкенд заявляет о себе пакетом [`ServerRegisterPacket`](core/src/main/java/uz/koopin/mss/sync/packets/ServerRegisterPacket.java), а прокси реагирует через `BackendRegistry`, который кладёт в `SyncContext` — поэтому пакет не трогает код Velocity, а бэкенды, у которых registry нет, просто его игнорируют. См. [`core/.../sync/packets`](core/src/main/java/uz/koopin/mss/sync/packets).
+
 ## Что лежит в Redis
 
 Если захочется поковыряться через `redis-cli`:

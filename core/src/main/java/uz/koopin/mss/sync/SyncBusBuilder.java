@@ -2,6 +2,7 @@ package uz.koopin.mss.sync;
 
 import com.google.gson.Gson;
 
+import java.time.Duration;
 import java.util.Objects;
 
 import uz.koopin.mss.storage.RedisCredentials;
@@ -14,6 +15,7 @@ public final class SyncBusBuilder {
     private String origin;
     private int publishThreads = 8;
     private boolean autoReconnect = true;
+    private long requestTimeoutMs = 10_000L;
     private Gson gson;
 
     SyncBusBuilder() { }
@@ -46,6 +48,14 @@ public final class SyncBusBuilder {
         return this;
     }
 
+    public SyncBusBuilder requestTimeout(Duration timeout) {
+        if (timeout == null || timeout.isZero() || timeout.isNegative()) {
+            throw new IllegalArgumentException("requestTimeout must be positive");
+        }
+        this.requestTimeoutMs = timeout.toMillis();
+        return this;
+    }
+
     public SyncBusBuilder gson(Gson gson) {
         this.gson = gson;
         return this;
@@ -63,5 +73,6 @@ public final class SyncBusBuilder {
     public String origin() { return origin; }
     public int publishThreads() { return publishThreads; }
     public boolean autoReconnect() { return autoReconnect; }
+    public long requestTimeoutMs() { return requestTimeoutMs; }
     public Gson gson() { return gson; }
 }

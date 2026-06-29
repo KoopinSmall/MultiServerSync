@@ -37,10 +37,12 @@ public final class SyncBusImpl implements SyncBus {
     private final String channel;
     private final String origin;
     private final boolean autoReconnect;
+    private final long requestTimeoutMs;
     private final PacketCodec codec;
     private final RequestRegistry requests = new RequestRegistry();
 
     private final ExecutorService publishExec;
+    private final ExecutorService handlerExec;
     private final Thread subscribeThread;
     private final JedisPubSub pubSub;
 
@@ -57,11 +59,13 @@ public final class SyncBusImpl implements SyncBus {
         this.channel = b.channel();
         this.origin = b.origin();
         this.autoReconnect = b.autoReconnect();
+        this.requestTimeoutMs = b.requestTimeoutMs();
 
         Gson gson = b.gson() != null ? b.gson() : new Gson();
         this.codec = new PacketCodec(gson);
 
         this.publishExec = Executors.newFixedThreadPool(b.publishThreads(), namedDaemon("SyncBus-Pub-" + origin));
+        this.handlerExec = Executors.newSingleThreadExecutor(namedDaemon("SyncBus-Dispatch-" + origin));
 
         this.pubSub = new JedisPubSub() {
             @Override
@@ -86,6 +90,7 @@ public final class SyncBusImpl implements SyncBus {
     public <R extends SyncPacket> CompletableFuture<R> request(ReplyablePacket<R> packet) {
         String corrId = UUID.randomUUID().toString();
         CompletableFuture<SyncPacket> raw = requests.register(corrId);
+        raw.orTimeout(requestTimeoutMs, TimeUnit.MILLISECONDS);
         publishAsync(codec.encode(packet, origin, corrId, false));
 
         @SuppressWarnings("unchecked")
@@ -102,19 +107,11 @@ public final class SyncBusImpl implements SyncBus {
         try {
             pubSub.unsubscribe();
         } catch (Exception ignored) {
-            // может быть не подписан
         }
 
         subscribeThread.interrupt();
-        publishExec.shutdown();
-        try {
-            if (!publishExec.awaitTermination(5, TimeUnit.SECONDS)) {
-                publishExec.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            publishExec.shutdownNow();
-        }
+        shutdownExecutor(publishExec);
+        shutdownExecutor(handlerExec);
 
         try {
             jedisPool.close();
@@ -180,6 +177,10 @@ public final class SyncBusImpl implements SyncBus {
             return;
         }
 
+        handlerExec.submit(() -> dispatch(decoded));
+    }
+
+    private void dispatch(PacketCodec.Decoded decoded) {
         try {
             if (decoded.isReply()) {
                 if (decoded.corrId() != null) {
@@ -202,6 +203,18 @@ public final class SyncBusImpl implements SyncBus {
             decoded.packet().onReceive();
         } catch (Exception e) {
             LOG.error("SyncBus[{}] handler threw for packet {}", origin, decoded.packet().getClass().getName(), e);
+        }
+    }
+
+    private static void shutdownExecutor(ExecutorService executor) {
+        executor.shutdown();
+        try {
+            if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            executor.shutdownNow();
         }
     }
 

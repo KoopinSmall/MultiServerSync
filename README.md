@@ -260,6 +260,8 @@ SyncContext.put(MyService.class, myServiceInstance);
 
 One gotcha worth repeating: a packet's class name **is** its wire identifier. Rename or move a packet class and you've broken every peer still running the old name. Keep packet types in a shared module and treat moving them like a protocol change.
 
+This plugin's own backend registration works exactly this way: a backend announces itself with [`ServerRegisterPacket`](core/src/main/java/uz/koopin/mss/sync/packets/ServerRegisterPacket.java), and the proxy reacts through a `BackendRegistry` it puts into `SyncContext` — so the packet never touches Velocity code and backends, having no registry, simply ignore it. See [`core/.../sync/packets`](core/src/main/java/uz/koopin/mss/sync/packets).
+
 ## What's in Redis
 
 If you ever want to poke around with `redis-cli`:

@@ -15,10 +15,6 @@ public final class ConfigurationUtil {
     private ConfigurationUtil() {
     }
 
-    /**
-     * Loads a YAML file from the plugin's data folder, writing the bundled default
-     * from resources on first run, and returns its root as a map.
-     */
     public static Map<String, Object> load(Path dataFolder, String fileName) throws IOException {
         Path file = dataFolder.resolve(fileName);
 

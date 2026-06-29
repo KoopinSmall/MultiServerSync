@@ -16,11 +16,11 @@ import uz.koopin.mss.managers.DataManager;
 import uz.koopin.mss.managers.PlayerManager;
 import uz.koopin.mss.managers.ServerManager;
 import uz.koopin.mss.messages.CommandMessage;
-import uz.koopin.mss.messages.ServerRegisteredMessage;
-import uz.koopin.mss.messages.ServerUnregisteredMessage;
-import uz.koopin.mss.messages.ServerUpdateMessage;
+import uz.koopin.mss.storage.RedisProvider;
 import uz.koopin.mss.storage.ServerGroup;
 import uz.koopin.mss.storage.SyncServer;
+import uz.koopin.mss.sync.SyncContext;
+import uz.koopin.mss.sync.packets.BackendRegistry;
 import uz.koopin.mss.utils.ConfigurationUtil;
 
 import java.io.IOException;
@@ -33,10 +33,10 @@ import java.util.concurrent.ConcurrentHashMap;
 @Plugin(
         id = "multi-server-sync",
         name = "multi-server-sync",
-        version = "1.2.0"
+        version = "1.2.1"
 )
 @Getter
-public class ProxySyncPlugin {
+public class ProxySyncPlugin implements BackendRegistry {
 
     @Getter
     private static ProxySyncPlugin instance;
@@ -45,6 +45,7 @@ public class ProxySyncPlugin {
     private final ProxyServer server;
     private final Path folder;
 
+    private RedisProvider redis;
     private DataManager dataManager;
     private PlayerManager playerManager;
     private ServerManager serverManager;
@@ -69,9 +70,12 @@ public class ProxySyncPlugin {
             throw new IllegalStateException("Failed to load config.yml", e);
         }
 
-        this.dataManager = new DataManager(ProxySettings.getRedis());
-        this.playerManager = new PlayerManager(ProxySettings.getRedis());
-        this.serverManager = new ServerManager(ProxySettings.getRedis());
+        this.redis = new RedisProvider(ProxySettings.getRedis());
+        this.dataManager = new DataManager(redis);
+        this.playerManager = new PlayerManager(redis);
+
+        SyncContext.put(BackendRegistry.class, this);
+        this.serverManager = new ServerManager(redis, ProxySettings.PROXY_NAME);
 
         this.server.getCommandManager().register(
                 this.server.getCommandManager().metaBuilder("vsync").build(),
@@ -79,7 +83,7 @@ public class ProxySyncPlugin {
         );
 
         loadExistingServers();
-        this.serverManager.getMessageBroker().subscribeToMessages(this::handleServerMessage);
+        this.serverManager.getMessageBroker().subscribeToMessages(this::handleCommandChannel);
         registerSelfInRedis();
 
         this.server.getAllPlayers().forEach(player ->
@@ -93,16 +97,11 @@ public class ProxySyncPlugin {
         this.server.getEventManager().register(this, new ProxyListener());
     }
 
-    private void handleServerMessage(String message) {
+    private void handleCommandChannel(String message) {
         try {
             JsonObject json = JsonParser.parseString(message).getAsJsonObject();
-            String messageType = json.get("messageType").getAsString();
-
-            switch (messageType) {
-                case "SERVER_REGISTERED" -> registerBackend(ServerRegisteredMessage.fromJson(message));
-                case "SERVER_UNREGISTERED" -> unregisterBackend(ServerUnregisteredMessage.fromJson(message));
-                case "SERVER_UPDATED" -> updateBackend(ServerUpdateMessage.fromJson(message));
-                case "COMMAND" -> handleCommandMessage(CommandMessage.fromJson(message));
+            if ("COMMAND".equals(json.get("messageType").getAsString())) {
+                handleCommandMessage(CommandMessage.fromJson(message));
             }
         } catch (Exception e) {
             logger.error("Failed to handle sync message", e);
@@ -137,29 +136,28 @@ public class ProxySyncPlugin {
                 syncServer.getAddress().getPort(), syncServer.isWhitelisted());
     }
 
-    private void registerBackend(ServerRegisteredMessage message) {
-        InetSocketAddress address = new InetSocketAddress(message.getAddressHost(), message.getAddressPort());
-        registerBackend(new SyncServer(
-                message.getProjectName(), message.getServerName(), address, message.isWhitelist()));
+    @Override
+    public void register(String project, String serverName, String host, int port, boolean whitelist) {
+        registerBackend(new SyncServer(project, serverName, new InetSocketAddress(host, port), whitelist));
     }
 
-    private synchronized void unregisterBackend(ServerUnregisteredMessage message) {
-        if (!ProxySettings.PROJECT_NAME.equalsIgnoreCase(message.getProjectName())) {
+    @Override
+    public synchronized void unregister(String project, String serverName) {
+        if (!ProxySettings.PROJECT_NAME.equalsIgnoreCase(project)) {
             return;
         }
-        String name = message.getServerName();
-        this.server.getServer(name).ifPresent(rs -> this.server.unregisterServer(rs.getServerInfo()));
-        managedServers.remove(name);
-        logger.info("Backend unregistered: {}", name);
+        this.server.getServer(serverName).ifPresent(rs -> this.server.unregisterServer(rs.getServerInfo()));
+        managedServers.remove(serverName);
+        logger.info("Backend unregistered: {}", serverName);
     }
 
-    private void updateBackend(ServerUpdateMessage message) {
-        if (!ProxySettings.PROJECT_NAME.equalsIgnoreCase(message.getProjectName())) {
+    @Override
+    public void update(String project, String serverName, String host, int port, boolean whitelist) {
+        if (!ProxySettings.PROJECT_NAME.equalsIgnoreCase(project)) {
             return;
         }
-        InetSocketAddress address = new InetSocketAddress(message.getAddressHost(), message.getAddressPort());
-        managedServers.put(message.getServerName(), new SyncServer(
-                message.getProjectName(), message.getServerName(), address, message.isWhitelist()));
+        managedServers.put(serverName, new SyncServer(
+                project, serverName, new InetSocketAddress(host, port), whitelist));
     }
 
     private void loadExistingServers() {

@@ -1,10 +1,7 @@
 package uz.koopin.mss.managers;
 
-import redis.clients.jedis.DefaultJedisClientConfig;
-import redis.clients.jedis.HostAndPort;
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
-import uz.koopin.mss.storage.RedisCredentials;
+import uz.koopin.mss.storage.RedisProvider;
 import uz.koopin.mss.storage.SyncUser;
 
 import java.util.HashMap;
@@ -12,24 +9,16 @@ import java.util.Map;
 
 public class PlayerManager {
 
-    private final JedisPool jedisPool;
-    private final RedisCredentials credentials;
+    private final RedisProvider redis;
 
-    public PlayerManager(RedisCredentials credentials) {
-        this.jedisPool = new JedisPool(
-                HostAndPort.from(credentials.host() + ":" + credentials.port()),
-                DefaultJedisClientConfig.builder()
-                        .password(credentials.password())
-                        .build()
-        );
-
-        this.credentials = credentials;
+    public PlayerManager(RedisProvider redis) {
+        this.redis = redis;
     }
 
     public void setPlayerLocation(String playerName, String proxy, String previousServer, String server) {
-        try (Jedis jedis = jedisPool.getResource()) {
+        try (Jedis jedis = redis.getResource()) {
             Map<String, String> data = new HashMap<>();
-            data.put("project", this.credentials.project());
+            data.put("project", redis.project());
             data.put("proxy", proxy);
             data.put("previousServer", previousServer);
             data.put("server", server);
@@ -38,7 +27,7 @@ public class PlayerManager {
     }
 
     public SyncUser getPlayerLocation(String playerName) {
-        try (Jedis jedis = jedisPool.getResource()) {
+        try (Jedis jedis = redis.getResource()) {
             String key = "mss:location:" + playerName;
             String project = jedis.hget(key, "project");
             String proxy = jedis.hget(key, "proxy");
@@ -51,33 +40,32 @@ public class PlayerManager {
     }
 
     public String getPlayerProject(String playerName) {
-        try (Jedis jedis = jedisPool.getResource()) {
+        try (Jedis jedis = redis.getResource()) {
             return jedis.hget("mss:location:" + playerName, "project");
         }
     }
 
     public String getPlayerPreviousServer(String playerName) {
-        try (Jedis jedis = jedisPool.getResource()) {
+        try (Jedis jedis = redis.getResource()) {
             return jedis.hget("mss:location:" + playerName, "previousServer");
         }
     }
 
     public String getPlayerServer(String playerName) {
-        try (Jedis jedis = jedisPool.getResource()) {
+        try (Jedis jedis = redis.getResource()) {
             return jedis.hget("mss:location:" + playerName, "server");
         }
     }
 
     public String getPlayerProxy(String playerName) {
-        try (Jedis jedis = jedisPool.getResource()) {
+        try (Jedis jedis = redis.getResource()) {
             return jedis.hget("mss:location:" + playerName, "proxy");
         }
     }
 
     public void removePlayer(String playerName) {
-        try (Jedis jedis = jedisPool.getResource()) {
+        try (Jedis jedis = redis.getResource()) {
             jedis.del("mss:location:" + playerName);
         }
     }
-
 }

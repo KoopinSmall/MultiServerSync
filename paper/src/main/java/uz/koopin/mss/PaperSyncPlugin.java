@@ -12,6 +12,7 @@ import uz.koopin.mss.managers.DataManager;
 import uz.koopin.mss.managers.PlayerManager;
 import uz.koopin.mss.managers.ServerManager;
 import uz.koopin.mss.messages.CommandMessage;
+import uz.koopin.mss.storage.RedisProvider;
 
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -23,6 +24,7 @@ public final class PaperSyncPlugin extends JavaPlugin {
     public static String SERVER_NAME;
     @Getter private static PaperSyncPlugin instance;
 
+    private RedisProvider redis;
     private DataManager dataManager;
     private PlayerManager playerManager;
     private ServerManager serverManager;
@@ -41,9 +43,10 @@ public final class PaperSyncPlugin extends JavaPlugin {
 
         PaperSettings.init(this.getConfig());
 
-        this.dataManager = new DataManager(PaperSettings.redis());
-        this.playerManager = new PlayerManager(PaperSettings.redis());
-        this.serverManager = new ServerManager(PaperSettings.redis());
+        this.redis = new RedisProvider(PaperSettings.redis());
+        this.dataManager = new DataManager(redis);
+        this.playerManager = new PlayerManager(redis);
+        this.serverManager = new ServerManager(redis, SERVER_NAME);
 
         if (PaperSettings.SERVER_REGISTER) {
             this.registerServer();
@@ -71,7 +74,7 @@ public final class PaperSyncPlugin extends JavaPlugin {
         InetSocketAddress address = new InetSocketAddress(host, port);
         boolean whitelist = this.getServer().hasWhitelist();
 
-        System.out.println("Registering server: " + address + ", whitelist: " + whitelist);
+        getLogger().info("Registering server: " + address + ", whitelist: " + whitelist);
         this.serverManager.registerServer(SERVER_NAME, address, whitelist);
     }
 
@@ -106,8 +109,8 @@ public final class PaperSyncPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        if (PaperSettings.SERVER_REGISTER) {
-            System.out.println("Unregistering server: " + SERVER_NAME);
+        if (PaperSettings.SERVER_REGISTER && this.serverManager != null) {
+            getLogger().info("Unregistering server: " + SERVER_NAME);
             this.serverManager.unregisterServer(SERVER_NAME);
             this.serverManager.removeServer(SERVER_NAME);
         }
@@ -115,6 +118,14 @@ public final class PaperSyncPlugin extends JavaPlugin {
         if (this.placeholders != null) {
             this.placeholders.unregister();
             this.placeholders = null;
+        }
+
+        if (this.serverManager != null) {
+            this.serverManager.close();
+        }
+
+        if (this.redis != null) {
+            this.redis.close();
         }
     }
 
@@ -139,7 +150,7 @@ public final class PaperSyncPlugin extends JavaPlugin {
                 boolean forMe = CommandMessage.isBroadcast(target) || target.equalsIgnoreCase(SERVER_NAME);
                 if (forMe) {
                     String commandToRun = cmdMsg.getCommandLine();
-                    System.out.println("Получена команда от " + cmdMsg.getServerName() + ": " + commandToRun);
+                    getLogger().info("Received command from " + cmdMsg.getServerName() + ": " + commandToRun);
 
                     Bukkit.getScheduler().runTask(this, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), commandToRun));
                 }

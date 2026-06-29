@@ -6,12 +6,8 @@ import java.net.InetSocketAddress;
 public class CommandMessage extends ServerMessage {
     private static final Gson gson = new Gson();
 
-    /** Спец-таргет: команда выполняется на ВСЕХ подключённых серверах без исключения. */
     public static final String BROADCAST_TARGET = "*";
 
-    /**
-     * Является ли target широковещательным (все серверы). Принимает "*" или "all".
-     */
     public static boolean isBroadcast(String target) {
         return BROADCAST_TARGET.equals(target) || "all".equalsIgnoreCase(target);
     }

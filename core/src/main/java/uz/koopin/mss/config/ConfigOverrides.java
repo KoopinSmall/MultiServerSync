@@ -3,20 +3,6 @@ package uz.koopin.mss.config;
 import java.util.Locale;
 import java.util.Optional;
 
-/**
- * Resolves configuration overrides from JVM system properties and environment
- * variables, so any value can be injected per-instance at startup without baking
- * a config file into the image. This is what makes the plugins safe to scale
- * horizontally under Docker/Kubernetes, where every replica shares one image but
- * needs its own identity.
- *
- * <p>For a dotted key such as {@code redis.host}, resolution order is:
- * <ol>
- *   <li>system property — {@code -Dmss.redis.host=...}</li>
- *   <li>environment variable — {@code MSS_REDIS_HOST}</li>
- *   <li>the supplied fallback (typically the value from config.yml)</li>
- * </ol>
- */
 public final class ConfigOverrides {
 
     private static final String PROPERTY_PREFIX = "mss.";
