@@ -5,11 +5,12 @@
 ![Java](https://img.shields.io/badge/Java-17+-orange?style=flat&logo=openjdk)
 ![Paper](https://img.shields.io/badge/Paper-1.16+-blue?style=flat)
 ![Velocity](https://img.shields.io/badge/Velocity-3.4.x-blue?style=flat)
+![BungeeCord](https://img.shields.io/badge/BungeeCord-1.21-blue?style=flat)
 ![Redis](https://img.shields.io/badge/Redis-backed-red?style=flat&logo=redis&logoColor=white)
 
 **English** · [Русский](README.ru.md)
 
-A Redis-backed sync layer for a Minecraft network running Velocity proxies in front of Paper backends.
+A Redis-backed sync layer for a Minecraft network running Velocity or BungeeCord proxies in front of Paper backends.
 
 I built this for my own network and have been running, breaking and refining it for about three years. It's been in production the whole time, and at its peak it kept things in sync across multiple proxies at 1000+ concurrent players without falling over. This repo is that code, cleaned up for public use.
 
@@ -21,13 +22,16 @@ Because a static server list doesn't scale with how you actually run a network. 
 
 ## Modules
 
-It's a Maven reactor with three modules:
+It's a Maven reactor with four modules:
 
 | Module | Artifact | What it does |
 |---|---|---|
-| `core` | `uz.koopin:mss-core` | The shared library both plugins depend on — managers, message DTOs, storage records, and the `SyncBus` framework. |
+| `core` | `uz.koopin:mss-core` | The shared library every plugin depends on — managers, message DTOs, storage records, and the `SyncBus` framework. |
 | `proxy` | `uz.koopin:mss-proxy` | Velocity plugin. Registers/unregisters backends at runtime, tracks players, dispatches commands, ships `/vsync`. |
+| `bungee` | `uz.koopin:mss-bungee` | BungeeCord plugin. Same behaviour as `proxy` on the BungeeCord API — registers/unregisters backends, tracks players, dispatches commands, ships `/bsync`. |
 | `paper` | `uz.koopin:mss-paper` | Paper plugin. Announces the backend, publishes its online count, ships `/sync` and the PlaceholderAPI placeholders. |
+
+`proxy` and `bungee` are interchangeable — pick whichever matches your proxy software. They share the same `core`, the same Redis layout and the same config, so a Velocity proxy and a BungeeCord proxy can sit in the same network and see each other's backends.
 
 Roughly, the network looks like this:
 
@@ -58,11 +62,11 @@ Hashes for shared state, pub/sub for events. I tried collapsing them into one on
 
 - Java 17+
 - A Redis instance every proxy and backend can reach
-- Velocity 3.4.x (proxy)
+- Velocity 3.4.x **or** BungeeCord 1.21 (proxy — pick one per instance)
 - Paper 1.16+ (backend)
 - PlaceholderAPI if you want the `%mss_*%` placeholders — optional
 
-Both jars are shaded and self-contained, no extra plugins to install.
+All jars are shaded and self-contained, no extra plugins to install.
 
 ## Building
 
@@ -72,17 +76,18 @@ Prebuilt jars are attached to every [release](https://github.com/KoopinSmall/Mul
 mvn -pl core -am clean install
 
 mvn -pl proxy -am clean package    # proxy/target/mss-proxy-<version>.jar
+mvn -pl bungee -am clean package   # bungee/target/mss-bungee-<version>.jar
 mvn -pl paper -am clean package    # paper/target/mss-paper-<version>.jar
 ```
 
-Or just `mvn clean package` and grab all three.
+Or just `mvn clean package` and grab them all.
 
 ## Setup
 
 1. Get Redis running somewhere everything can reach.
-2. Put `mss-proxy` in each Velocity's `plugins/`.
+2. Put `mss-proxy` in each Velocity's `plugins/` — or `mss-bungee` in each BungeeCord (or Waterfall) proxy's `plugins/`.
 3. Put `mss-paper` in each Paper's `plugins/`.
-4. Start each once to generate its config (`plugins/multi-server-sync/config.yml` on the proxy, `plugins/MultiServerSync/config.yml` on the backend).
+4. Start each once to generate its config (`plugins/multi-server-sync/config.yml` on either proxy, `plugins/MultiServerSync/config.yml` on the backend).
 5. Point both at the same Redis and give them the **same `project`** — that's the one setting that ties a network together.
 6. Restart. Backends show up on every proxy on their own.
 
@@ -108,6 +113,8 @@ server-groups:
 ```
 
 The `hub` group does double duty: it's also the pool a player gets bounced to when a backend kicks them, instead of being dropped from the network entirely.
+
+The BungeeCord plugin (`mss-bungee`) reads the **exact same config** at `plugins/multi-server-sync/config.yml` — same keys, same meaning. The only user-visible difference is the command name (`/bsync` instead of `/vsync`, see below).
 
 ### Backend config
 
@@ -170,7 +177,7 @@ With `MSS_SERVER_NAME` set, the backend stops deriving its name from the world-c
 
 ## Commands
 
-Run a command on a remote server from a proxy (`/vsync`) or from a backend (`/sync`) — same syntax either way:
+Run a command on a remote server from a Velocity proxy (`/vsync`), a BungeeCord proxy (`/bsync`), or from a backend (`/sync`) — same syntax either way:
 
 ```
 /vsync <target> <command>        # one server, or '*' / 'all' for everything
@@ -181,10 +188,11 @@ Run a command on a remote server from a proxy (`/vsync`) or from a backend (`/sy
 /vsync hub-1 say Hello from the proxy
 /vsync all kick Steve
 /vsync -g hub broadcast Restarting in 5 minutes
+/bsync hub-2 say Hello from the BungeeCord proxy
 /sync anarchy-2 time set day
 ```
 
-Permission node is `mss.command.sync`.
+Permission node is `mss.command.sync` for all three.
 
 ## Placeholders
 

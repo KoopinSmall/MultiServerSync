@@ -5,11 +5,12 @@
 ![Java](https://img.shields.io/badge/Java-17+-orange?style=flat&logo=openjdk)
 ![Paper](https://img.shields.io/badge/Paper-1.16+-blue?style=flat)
 ![Velocity](https://img.shields.io/badge/Velocity-3.4.x-blue?style=flat)
+![BungeeCord](https://img.shields.io/badge/BungeeCord-1.21-blue?style=flat)
 ![Redis](https://img.shields.io/badge/Redis-backed-red?style=flat&logo=redis&logoColor=white)
 
 [English](README.md) · **Русский**
 
-Слой синхронизации на Redis для Minecraft-сети, где Velocity-прокси стоят перед Paper-бэкендами.
+Слой синхронизации на Redis для Minecraft-сети, где Velocity- или BungeeCord-прокси стоят перед Paper-бэкендами.
 
 Я написал это для своей сети и примерно три года это гонял, ломал и допиливал. Всё это время оно крутилось в проде, и на пике держало синхронизацию между несколькими проксями при 1000+ онлайна, не падая. В этом репозитории — тот самый код, причёсанный для публичного использования.
 
@@ -21,13 +22,16 @@
 
 ## Модули
 
-Это Maven-реактор из трёх модулей:
+Это Maven-реактор из четырёх модулей:
 
 | Модуль | Артефакт | Что делает |
 |---|---|---|
-| `core` | `uz.koopin:mss-core` | Общая библиотека, от которой зависят оба плагина — менеджеры, DTO сообщений, storage-записи и фреймворк `SyncBus`. |
+| `core` | `uz.koopin:mss-core` | Общая библиотека, от которой зависят все плагины — менеджеры, DTO сообщений, storage-записи и фреймворк `SyncBus`. |
 | `proxy` | `uz.koopin:mss-proxy` | Плагин для Velocity. Регистрирует/снимает бэкенды на лету, трекает игроков, рассылает команды, даёт `/vsync`. |
+| `bungee` | `uz.koopin:mss-bungee` | Плагин для BungeeCord. То же поведение, что и `proxy`, но на BungeeCord API — регистрирует/снимает бэкенды, трекает игроков, рассылает команды, даёт `/bsync`. |
 | `paper` | `uz.koopin:mss-paper` | Плагин для Paper. Заявляет о бэкенде, публикует свой онлайн, даёт `/sync` и плейсхолдеры PlaceholderAPI. |
+
+`proxy` и `bungee` взаимозаменяемы — бери тот, что подходит под твой прокси-софт. У них общий `core`, одинаковая раскладка в Redis и одинаковый конфиг, так что Velocity-прокси и BungeeCord-прокси могут стоять в одной сети и видеть бэкенды друг друга.
 
 Грубо сеть выглядит так:
 
@@ -58,11 +62,11 @@
 
 - Java 17+
 - Redis, до которого дотягивается каждый прокси и бэкенд
-- Velocity 3.4.x (прокси)
+- Velocity 3.4.x **или** BungeeCord 1.21 (прокси — что-то одно на инстанс)
 - Paper 1.16+ (бэкенд)
 - PlaceholderAPI, если нужны плейсхолдеры `%mss_*%` — опционально
 
-Оба jar'а собраны как самодостаточные shaded-jar, ставить дополнительные плагины не надо.
+Все jar'ы собраны как самодостаточные shaded-jar, ставить дополнительные плагины не надо.
 
 ## Сборка
 
@@ -72,17 +76,18 @@
 mvn -pl core -am clean install
 
 mvn -pl proxy -am clean package    # proxy/target/mss-proxy-<version>.jar
+mvn -pl bungee -am clean package   # bungee/target/mss-bungee-<version>.jar
 mvn -pl paper -am clean package    # paper/target/mss-paper-<version>.jar
 ```
 
-Или просто `mvn clean package` и забрать все три.
+Или просто `mvn clean package` и забрать их все.
 
 ## Установка
 
 1. Подними Redis там, куда дотянется всё остальное.
-2. Закинь `mss-proxy` в `plugins/` каждой Velocity.
+2. Закинь `mss-proxy` в `plugins/` каждой Velocity — либо `mss-bungee` в `plugins/` каждого BungeeCord (или Waterfall) прокси.
 3. Закинь `mss-paper` в `plugins/` каждого Paper.
-4. Запусти каждый один раз, чтобы сгенерировался конфиг (`plugins/multi-server-sync/config.yml` на проксе, `plugins/MultiServerSync/config.yml` на бэкенде).
+4. Запусти каждый один раз, чтобы сгенерировался конфиг (`plugins/multi-server-sync/config.yml` на любой проксе, `plugins/MultiServerSync/config.yml` на бэкенде).
 5. Направь оба на один Redis и дай им **одинаковый `project`** — это та самая настройка, что связывает сеть в одно целое.
 6. Перезапусти. Бэкенды появятся на каждой проксе сами.
 
@@ -108,6 +113,8 @@ server-groups:
 ```
 
 Группа `hub` работает за двоих: это ещё и пул, куда игрока перекидывает, когда бэкенд его кикает, — чтобы не выбрасывать его из сети целиком.
+
+Плагин для BungeeCord (`mss-bungee`) читает **тот же самый конфиг** по пути `plugins/multi-server-sync/config.yml` — те же ключи, тот же смысл. Единственное видимое отличие — имя команды (`/bsync` вместо `/vsync`, см. ниже).
 
 ### Конфиг бэкенда
 
@@ -170,7 +177,7 @@ env:
 
 ## Команды
 
-Запустить команду на удалённом сервере можно с проксы (`/vsync`) или с бэкенда (`/sync`) — синтаксис одинаковый:
+Запустить команду на удалённом сервере можно с Velocity-проксы (`/vsync`), с BungeeCord-проксы (`/bsync`) или с бэкенда (`/sync`) — синтаксис одинаковый:
 
 ```
 /vsync <target> <command>        # один сервер, или '*' / 'all' для всех
@@ -181,10 +188,11 @@ env:
 /vsync hub-1 say Привет с проксы
 /vsync all kick Steve
 /vsync -g hub broadcast Рестарт через 5 минут
+/bsync hub-2 say Привет с BungeeCord-проксы
 /sync anarchy-2 time set day
 ```
 
-Право — `mss.command.sync`.
+Право — `mss.command.sync` для всех трёх.
 
 ## Плейсхолдеры
 
