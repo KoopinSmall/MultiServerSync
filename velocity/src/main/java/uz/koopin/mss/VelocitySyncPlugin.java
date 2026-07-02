@@ -33,7 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Plugin(
         id = "multi-server-sync",
         name = "multi-server-sync",
-        version = "1.2.1"
+        version = "1.2.2"
 )
 @Getter
 public class VelocitySyncPlugin implements BackendRegistry {
