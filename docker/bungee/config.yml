@@ -1,0 +1,57 @@
+disabled_commands: []
+reject_transfers: false
+player_limit: -1
+connection_throttle_limit: 3
+prevent_proxy_connections: false
+connection_throttle: -1
+network_compression_threshold: 256
+remote_ping_timeout: 5000
+remote_ping_cache: -1
+online_mode: false
+forge_support: false
+max_packets_per_second: 4096
+max_packets_data_per_second: 33554432
+listeners:
+- host: 0.0.0.0:25577
+  motd: '&bMSS test network'
+  max_players: 100
+  priorities:
+  - lobby-1
+  force_default_server: false
+  tab_list: GLOBAL_PING
+  bind_local_address: true
+  ping_passthrough: false
+  proxy_protocol: false
+  tab_size: 60
+  forced_hosts:
+    pvp.md-5.net: pvp
+  query_enabled: false
+  query_port: 25577
+ip_forward: true
+log_commands: false
+log_pings: true
+groups: {}
+stats: 92abcb7c-06fd-416d-95b7-6b8590e30499
+servers:
+  lobby-1:
+    address: lobby-1:25565
+    motd: '&7lobby'
+    restricted: false
+permissions:
+  default:
+  - bungeecord.command.server
+  - bungeecord.command.list
+  admin:
+  - bungeecord.command.alert
+  - bungeecord.command.alertraw
+  - bungeecord.command.end
+  - bungeecord.command.ip
+  - bungeecord.command.reload
+  - bungeecord.command.kick
+  - bungeecord.command.send
+  - bungeecord.command.find
+  - bungeecord.command.perms
+connection_throttle_interval: 30000
+enforce_secure_profile: false
+server_connect_timeout: 5000
+timeout: 30000

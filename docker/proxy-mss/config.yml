@@ -1,0 +1,18 @@
+# mss-proxy / mss-bungee plugin config, mounted into the proxy so the
+# server-groups match the backends in this stack. project / proxy name / redis
+# are supplied via MSS_* env in compose.yml and override whatever's set here,
+# so the only thing that actually matters in this file is server-groups.
+project: koopin
+proxy: proxy-1
+
+redis:
+  host: "127.0.0.1"
+  port: 6379
+  password: ""
+
+server-groups:
+  lobby:
+    - 'lobby-1'
+    - 'lobby-2'
+  survival:
+    - 'survival-1'

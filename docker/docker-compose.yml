@@ -1,0 +1,126 @@
+name: mss-test
+
+x-backend-env: &backend-env
+  EULA: "TRUE"
+  TYPE: PAPER
+  VERSION: ${MC_VERSION}
+  MEMORY: ${PAPER_MEMORY}
+  ONLINE_MODE: "FALSE"
+  USE_AIKAR_FLAGS: "true"
+  MSS_PROJECT: ${PROJECT}
+  MSS_REDIS_HOST: redis
+  MSS_REDIS_PASSWORD: ${REDIS_PASSWORD}
+  MSS_SERVER_PORT: "0"            # 0 = take it from server.properties (itzg default 25565)
+
+x-backend: &backend
+  image: itzg/minecraft-server:java21
+  restart: unless-stopped
+  stdin_open: true                 # keep STDIN open so `docker attach` reaches the console
+  tty: true                        # allocate a TTY so the server's interactive console works
+  depends_on:
+    redis:
+      condition: service_healthy
+  volumes:
+    - ./jars/mss-paper.jar:/plugins/mss-paper.jar:ro
+    - ./backend/spigot.yml:/data/spigot.yml
+  networks: [mss]
+
+services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    ports:
+      - "6379:6379" 
+    networks: [mss]
+
+  velocity:
+    image: itzg/bungeecord
+    profiles: ["velocity"]
+    restart: unless-stopped
+    stdin_open: true               # `docker attach mss-test-velocity-1` -> type /vsync ...
+    tty: true
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      TYPE: VELOCITY
+      MSS_PROJECT: ${PROJECT}
+      MSS_PROXY_NAME: velocity-1
+      MSS_REDIS_HOST: redis
+      MSS_REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      - ./jars/mss-proxy.jar:/server/plugins/mss-proxy.jar
+      - ./velocity/velocity.toml:/server/velocity.toml
+      - ./proxy-mss/config.yml:/server/plugins/multi-server-sync/config.yml
+    ports:
+      - "${VELOCITY_PORT}:25565"
+    networks: [mss]
+
+  bungee:
+    image: itzg/bungeecord
+    profiles: ["bungee"]
+    restart: unless-stopped
+    stdin_open: true               # `docker attach mss-test-bungee-1` -> type /bsync ...
+    tty: true
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      TYPE: BUNGEECORD
+      MSS_PROJECT: ${PROJECT}
+      MSS_PROXY_NAME: bungee-1
+      MSS_REDIS_HOST: redis
+      MSS_REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      - ./jars/mss-bungee.jar:/server/plugins/mss-bungee.jar
+      - ./bungee/config.yml:/server/config.yml
+      - ./proxy-mss/config.yml:/server/plugins/multi-server-sync/config.yml
+    ports:
+      - "${BUNGEE_PORT}:25577"
+    networks: [mss]
+
+  lobby-1:
+    <<: *backend
+    environment:
+      <<: *backend-env
+      MSS_SERVER_NAME: lobby-1
+      MSS_SERVER_HOST: lobby-1    # address proxies dial over the docker network
+    volumes:
+      - ./jars/mss-paper.jar:/plugins/mss-paper.jar:ro
+      - ./backend/spigot.yml:/data/spigot.yml
+      - lobby1_data:/data
+
+  lobby-2:
+    <<: *backend
+    environment:
+      <<: *backend-env
+      MSS_SERVER_NAME: lobby-2
+      MSS_SERVER_HOST: lobby-2
+    volumes:
+      - ./jars/mss-paper.jar:/plugins/mss-paper.jar:ro
+      - ./backend/spigot.yml:/data/spigot.yml
+      - lobby2_data:/data
+
+  survival-1:
+    <<: *backend
+    environment:
+      <<: *backend-env
+      MSS_SERVER_NAME: survival-1
+      MSS_SERVER_HOST: survival-1
+    volumes:
+      - ./jars/mss-paper.jar:/plugins/mss-paper.jar:ro
+      - ./backend/spigot.yml:/data/spigot.yml
+      - survival1_data:/data
+
+networks:
+  mss:
+
+volumes:
+  lobby1_data:
+  lobby2_data:
+  survival1_data:
