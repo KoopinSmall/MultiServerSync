@@ -12,6 +12,7 @@
     <modules>
         <module>core</module>
         <module>proxy</module>
+        <module>bungee</module>
         <module>paper</module>
     </modules>
 
@@ -27,6 +28,7 @@
         <snakeyaml.version>2.3</snakeyaml.version>
         <lombok.version>1.18.46</lombok.version>
         <velocity.version>3.4.0-SNAPSHOT</velocity.version>
+        <bungeecord.version>1.21-R0.4</bungeecord.version>
         <paper.version>1.16.5-R0.1-SNAPSHOT</paper.version>
         <placeholderapi.version>2.11.6</placeholderapi.version>
 
@@ -72,6 +74,11 @@
                 <groupId>com.velocitypowered</groupId>
                 <artifactId>velocity-api</artifactId>
                 <version>${velocity.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>net.md-5</groupId>
+                <artifactId>bungeecord-api</artifactId>
+                <version>${bungeecord.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.destroystokyo.paper</groupId>
