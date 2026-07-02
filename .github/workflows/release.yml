@@ -31,6 +31,6 @@ jobs:
           name: ${{ github.ref_name }}
           generate_release_notes: true
           files: |
-            proxy/target/mss-proxy-*.jar
+            velocity/target/mss-velocity-*.jar
             bungee/target/mss-bungee-*.jar
             paper/target/mss-paper-*.jar

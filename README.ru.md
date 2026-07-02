@@ -27,18 +27,18 @@
 | Модуль | Артефакт | Что делает |
 |---|---|---|
 | `core` | `uz.koopin:mss-core` | Общая библиотека, от которой зависят все плагины — менеджеры, DTO сообщений, storage-записи и фреймворк `SyncBus`. |
-| `proxy` | `uz.koopin:mss-proxy` | Плагин для Velocity. Регистрирует/снимает бэкенды на лету, трекает игроков, рассылает команды, даёт `/vsync`. |
+| `velocity` | `uz.koopin:mss-velocity` | Плагин для Velocity. Регистрирует/снимает бэкенды на лету, трекает игроков, рассылает команды, даёт `/vsync`. |
 | `bungee` | `uz.koopin:mss-bungee` | Плагин для BungeeCord. То же поведение, что и `proxy`, но на BungeeCord API — регистрирует/снимает бэкенды, трекает игроков, рассылает команды, даёт `/bsync`. |
 | `paper` | `uz.koopin:mss-paper` | Плагин для Paper. Заявляет о бэкенде, публикует свой онлайн, даёт `/sync` и плейсхолдеры PlaceholderAPI. |
 
-`proxy` и `bungee` взаимозаменяемы — бери тот, что подходит под твой прокси-софт. У них общий `core`, одинаковая раскладка в Redis и одинаковый конфиг, так что Velocity-прокси и BungeeCord-прокси могут стоять в одной сети и видеть бэкенды друг друга.
+`velocity` и `bungee` взаимозаменяемы — бери тот, что подходит под твой прокси-софт. У них общий `core`, одинаковая раскладка в Redis и одинаковый конфиг, так что Velocity-прокси и BungeeCord-прокси могут стоять в одной сети и видеть бэкенды друг друга.
 
 Грубо сеть выглядит так:
 
 ```
          ┌──────────────┐        ┌──────────────┐
          │  Velocity #1 │        │  Velocity #2 │   проксей сколько угодно
-         │ (mss-proxy)  │        │ (mss-proxy)  │
+         │(mss-velocity)│        │(mss-velocity)│
          └──────┬───────┘        └──────┬───────┘
                 │                       │
                 └───────────┬───────────┘
@@ -75,7 +75,7 @@
 ```bash
 mvn -pl core -am clean install
 
-mvn -pl proxy -am clean package    # proxy/target/mss-proxy-<version>.jar
+mvn -pl velocity -am clean package # velocity/target/mss-velocity-<version>.jar
 mvn -pl bungee -am clean package   # bungee/target/mss-bungee-<version>.jar
 mvn -pl paper -am clean package    # paper/target/mss-paper-<version>.jar
 ```
@@ -85,7 +85,7 @@ mvn -pl paper -am clean package    # paper/target/mss-paper-<version>.jar
 ## Установка
 
 1. Подними Redis там, куда дотянется всё остальное.
-2. Закинь `mss-proxy` в `plugins/` каждой Velocity — либо `mss-bungee` в `plugins/` каждого BungeeCord (или Waterfall) прокси.
+2. Закинь `mss-velocity` в `plugins/` каждой Velocity — либо `mss-bungee` в `plugins/` каждого BungeeCord (или Waterfall) прокси.
 3. Закинь `mss-paper` в `plugins/` каждого Paper.
 4. Запусти каждый один раз, чтобы сгенерировался конфиг (`plugins/multi-server-sync/config.yml` на любой проксе, `plugins/MultiServerSync/config.yml` на бэкенде).
 5. Направь оба на один Redis и дай им **одинаковый `project`** — это та самая настройка, что связывает сеть в одно целое.

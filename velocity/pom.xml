@@ -9,10 +9,10 @@
         <version>1.2.1</version>
     </parent>
 
-    <artifactId>mss-proxy</artifactId>
+    <artifactId>mss-velocity</artifactId>
     <packaging>jar</packaging>
 
-    <name>proxy</name>
+    <name>velocity</name>
 
     <repositories>
         <repository>

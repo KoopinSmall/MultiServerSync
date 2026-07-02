@@ -1,7 +1,7 @@
 package uz.koopin.mss.utils;
 
 import org.yaml.snakeyaml.Yaml;
-import uz.koopin.mss.ProxySyncPlugin;
+import uz.koopin.mss.VelocitySyncPlugin;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -20,7 +20,7 @@ public final class ConfigurationUtil {
 
         if (Files.notExists(file)) {
             Files.createDirectories(dataFolder);
-            try (InputStream defaults = ProxySyncPlugin.class.getResourceAsStream("/" + fileName)) {
+            try (InputStream defaults = VelocitySyncPlugin.class.getResourceAsStream("/" + fileName)) {
                 if (defaults != null) {
                     Files.copy(defaults, file);
                 } else {

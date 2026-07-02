@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public final class ProxySettings {
+public final class VelocitySettings {
 
     public static String PROJECT_NAME;
     public static String PROXY_NAME;
@@ -18,7 +18,7 @@ public final class ProxySettings {
     @Getter
     private static List<ServerGroup> serverGroups;
 
-    private ProxySettings() {
+    private VelocitySettings() {
     }
 
     public static void init(Map<String, Object> config) {

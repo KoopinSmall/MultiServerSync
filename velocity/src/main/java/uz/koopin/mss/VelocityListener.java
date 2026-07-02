@@ -16,10 +16,10 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
-public class ProxyListener {
+public class VelocityListener {
 
     private static final int MAX_ATTEMPTS = 3;
-    private final PlayerManager playerManager = ProxySyncPlugin.getInstance().getPlayerManager();
+    private final PlayerManager playerManager = VelocitySyncPlugin.getInstance().getPlayerManager();
     private final Map<UUID, Integer> reconnectAttempts = new ConcurrentHashMap<>();
 
     @Subscribe
@@ -38,12 +38,12 @@ public class ProxyListener {
             previousServerName = "";
         }
 
-        ProxySyncPlugin.getInstance().getServer()
+        VelocitySyncPlugin.getInstance().getServer()
                 .getScheduler()
-                .buildTask(ProxySyncPlugin.getInstance(), () -> {
+                .buildTask(VelocitySyncPlugin.getInstance(), () -> {
                     this.playerManager.setPlayerLocation(
                             player.getUsername(),
-                            ProxySettings.PROXY_NAME,
+                            VelocitySettings.PROXY_NAME,
                             previousServerName,
                             server.getServerInfo().getName()
                     );
@@ -83,9 +83,9 @@ public class ProxyListener {
 
         this.reconnectAttempts.remove(player.getUniqueId());
 
-        ProxySyncPlugin.getInstance().getServer()
+        VelocitySyncPlugin.getInstance().getServer()
                 .getScheduler()
-                .buildTask(ProxySyncPlugin.getInstance(), () -> {
+                .buildTask(VelocitySyncPlugin.getInstance(), () -> {
                     this.playerManager.removePlayer(player.getUsername());
                 })
                 .delay(1L, TimeUnit.SECONDS)
@@ -93,10 +93,10 @@ public class ProxyListener {
     }
 
     private Optional<RegisteredServer> pickFallback(RegisteredServer kickedFrom) {
-        ProxyServer proxy = ProxySyncPlugin.getInstance().getServer();
+        ProxyServer proxy = VelocitySyncPlugin.getInstance().getServer();
         String kickedName = kickedFrom != null ? kickedFrom.getServerInfo().getName() : "";
 
-        return ProxySettings.getHubServers().stream()
+        return VelocitySettings.getHubServers().stream()
                 .filter(name -> !name.equalsIgnoreCase(kickedName))
                 .map(proxy::getServer)
                 .filter(Optional::isPresent)

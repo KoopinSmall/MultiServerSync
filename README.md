@@ -27,18 +27,18 @@ It's a Maven reactor with four modules:
 | Module | Artifact | What it does |
 |---|---|---|
 | `core` | `uz.koopin:mss-core` | The shared library every plugin depends on — managers, message DTOs, storage records, and the `SyncBus` framework. |
-| `proxy` | `uz.koopin:mss-proxy` | Velocity plugin. Registers/unregisters backends at runtime, tracks players, dispatches commands, ships `/vsync`. |
+| `velocity` | `uz.koopin:mss-velocity` | Velocity plugin. Registers/unregisters backends at runtime, tracks players, dispatches commands, ships `/vsync`. |
 | `bungee` | `uz.koopin:mss-bungee` | BungeeCord plugin. Same behaviour as `proxy` on the BungeeCord API — registers/unregisters backends, tracks players, dispatches commands, ships `/bsync`. |
 | `paper` | `uz.koopin:mss-paper` | Paper plugin. Announces the backend, publishes its online count, ships `/sync` and the PlaceholderAPI placeholders. |
 
-`proxy` and `bungee` are interchangeable — pick whichever matches your proxy software. They share the same `core`, the same Redis layout and the same config, so a Velocity proxy and a BungeeCord proxy can sit in the same network and see each other's backends.
+`velocity` and `bungee` are interchangeable — pick whichever matches your proxy software. They share the same `core`, the same Redis layout and the same config, so a Velocity proxy and a BungeeCord proxy can sit in the same network and see each other's backends.
 
 Roughly, the network looks like this:
 
 ```
          ┌──────────────┐        ┌──────────────┐
          │  Velocity #1 │        │  Velocity #2 │   any number of proxies
-         │ (mss-proxy)  │        │ (mss-proxy)  │
+         │(mss-velocity)│        │(mss-velocity)│
          └──────┬───────┘        └──────┬───────┘
                 │                       │
                 └───────────┬───────────┘
@@ -75,7 +75,7 @@ Prebuilt jars are attached to every [release](https://github.com/KoopinSmall/Mul
 ```bash
 mvn -pl core -am clean install
 
-mvn -pl proxy -am clean package    # proxy/target/mss-proxy-<version>.jar
+mvn -pl velocity -am clean package # velocity/target/mss-velocity-<version>.jar
 mvn -pl bungee -am clean package   # bungee/target/mss-bungee-<version>.jar
 mvn -pl paper -am clean package    # paper/target/mss-paper-<version>.jar
 ```
@@ -85,7 +85,7 @@ Or just `mvn clean package` and grab them all.
 ## Setup
 
 1. Get Redis running somewhere everything can reach.
-2. Put `mss-proxy` in each Velocity's `plugins/` — or `mss-bungee` in each BungeeCord (or Waterfall) proxy's `plugins/`.
+2. Put `mss-velocity` in each Velocity's `plugins/` — or `mss-bungee` in each BungeeCord (or Waterfall) proxy's `plugins/`.
 3. Put `mss-paper` in each Paper's `plugins/`.
 4. Start each once to generate its config (`plugins/multi-server-sync/config.yml` on either proxy, `plugins/MultiServerSync/config.yml` on the backend).
 5. Point both at the same Redis and give them the **same `project`** — that's the one setting that ties a network together.

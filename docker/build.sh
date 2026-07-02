@@ -9,7 +9,7 @@ root="$(cd "$here/.." && pwd)"
 
 mkdir -p "$here/jars"
 copy() { local src; src="$(ls "$root"/$1 | head -n1)"; cp -f "$src" "$here/jars/$2"; echo "  -> jars/$2  ($(basename "$src"))"; }
-copy "proxy/target/mss-proxy-*.jar"   mss-proxy.jar
+copy "velocity/target/mss-velocity-*.jar" mss-velocity.jar
 copy "bungee/target/mss-bungee-*.jar" mss-bungee.jar
 copy "paper/target/mss-paper-*.jar"   mss-paper.jar
 echo "Done. Now: docker compose --profile velocity up   (or --profile bungee)"

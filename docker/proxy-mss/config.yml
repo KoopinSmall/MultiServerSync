@@ -1,4 +1,4 @@
-# mss-proxy / mss-bungee plugin config, mounted into the proxy so the
+# mss-velocity / mss-bungee plugin config, mounted into the proxy so the
 # server-groups match the backends in this stack. project / proxy name / redis
 # are supplied via MSS_* env in compose.yml and override whatever's set here,
 # so the only thing that actually matters in this file is server-groups.

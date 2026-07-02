@@ -54,7 +54,7 @@ services:
       MSS_REDIS_HOST: redis
       MSS_REDIS_PASSWORD: ${REDIS_PASSWORD}
     volumes:
-      - ./jars/mss-proxy.jar:/server/plugins/mss-proxy.jar
+      - ./jars/mss-velocity.jar:/server/plugins/mss-velocity.jar
       - ./velocity/velocity.toml:/server/velocity.toml
       - ./proxy-mss/config.yml:/server/plugins/multi-server-sync/config.yml
     ports:

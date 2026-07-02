@@ -36,10 +36,10 @@ import java.util.concurrent.ConcurrentHashMap;
         version = "1.2.1"
 )
 @Getter
-public class ProxySyncPlugin implements BackendRegistry {
+public class VelocitySyncPlugin implements BackendRegistry {
 
     @Getter
-    private static ProxySyncPlugin instance;
+    private static VelocitySyncPlugin instance;
 
     private final Logger logger;
     private final ProxyServer server;
@@ -54,7 +54,7 @@ public class ProxySyncPlugin implements BackendRegistry {
     private int currentOnline = 0;
 
     @Inject
-    public ProxySyncPlugin(ProxyServer server, Logger logger, @DataDirectory Path folder) {
+    public VelocitySyncPlugin(ProxyServer server, Logger logger, @DataDirectory Path folder) {
         this.server = server;
         this.logger = logger;
         this.folder = folder;
@@ -65,17 +65,17 @@ public class ProxySyncPlugin implements BackendRegistry {
         instance = this;
 
         try {
-            ProxySettings.init(ConfigurationUtil.load(folder, "config.yml"));
+            VelocitySettings.init(ConfigurationUtil.load(folder, "config.yml"));
         } catch (IOException e) {
             throw new IllegalStateException("Failed to load config.yml", e);
         }
 
-        this.redis = new RedisProvider(ProxySettings.getRedis());
+        this.redis = new RedisProvider(VelocitySettings.getRedis());
         this.dataManager = new DataManager(redis);
         this.playerManager = new PlayerManager(redis);
 
         SyncContext.put(BackendRegistry.class, this);
-        this.serverManager = new ServerManager(redis, ProxySettings.PROXY_NAME);
+        this.serverManager = new ServerManager(redis, VelocitySettings.PROXY_NAME);
 
         this.server.getCommandManager().register(
                 this.server.getCommandManager().metaBuilder("vsync").build(),
@@ -89,12 +89,12 @@ public class ProxySyncPlugin implements BackendRegistry {
         this.server.getAllPlayers().forEach(player ->
                 player.getCurrentServer().ifPresent(current -> this.playerManager.setPlayerLocation(
                         player.getUsername(),
-                        ProxySettings.PROXY_NAME,
+                        VelocitySettings.PROXY_NAME,
                         current.getServerInfo().getName(),
                         current.getServerInfo().getName()
                 )));
 
-        this.server.getEventManager().register(this, new ProxyListener());
+        this.server.getEventManager().register(this, new VelocityListener());
     }
 
     private void handleCommandChannel(String message) {
@@ -111,16 +111,16 @@ public class ProxySyncPlugin implements BackendRegistry {
     private void registerSelfInRedis() {
         InetSocketAddress address = new InetSocketAddress(
                 server.getBoundAddress().getAddress(), server.getBoundAddress().getPort());
-        logger.info("Publishing proxy '{}' presence in Redis at {}", ProxySettings.PROXY_NAME, address);
-        this.serverManager.registerServer(ProxySettings.PROXY_NAME, address, false);
+        logger.info("Publishing proxy '{}' presence in Redis at {}", VelocitySettings.PROXY_NAME, address);
+        this.serverManager.registerServer(VelocitySettings.PROXY_NAME, address, false);
     }
 
     private synchronized void registerBackend(SyncServer syncServer) {
-        if (!ProxySettings.PROJECT_NAME.equalsIgnoreCase(syncServer.getProjectName())) {
+        if (!VelocitySettings.PROJECT_NAME.equalsIgnoreCase(syncServer.getProjectName())) {
             return;
         }
         String name = syncServer.getServerName();
-        if (name.equalsIgnoreCase(ProxySettings.PROXY_NAME)) {
+        if (name.equalsIgnoreCase(VelocitySettings.PROXY_NAME)) {
             return;
         }
 
@@ -143,7 +143,7 @@ public class ProxySyncPlugin implements BackendRegistry {
 
     @Override
     public synchronized void unregister(String project, String serverName) {
-        if (!ProxySettings.PROJECT_NAME.equalsIgnoreCase(project)) {
+        if (!VelocitySettings.PROJECT_NAME.equalsIgnoreCase(project)) {
             return;
         }
         this.server.getServer(serverName).ifPresent(rs -> this.server.unregisterServer(rs.getServerInfo()));
@@ -153,7 +153,7 @@ public class ProxySyncPlugin implements BackendRegistry {
 
     @Override
     public void update(String project, String serverName, String host, int port, boolean whitelist) {
-        if (!ProxySettings.PROJECT_NAME.equalsIgnoreCase(project)) {
+        if (!VelocitySettings.PROJECT_NAME.equalsIgnoreCase(project)) {
             return;
         }
         managedServers.put(serverName, new SyncServer(
@@ -180,13 +180,13 @@ public class ProxySyncPlugin implements BackendRegistry {
                 return;
             }
 
-            if (target.equalsIgnoreCase(ProxySettings.PROXY_NAME)) {
+            if (target.equalsIgnoreCase(VelocitySettings.PROXY_NAME)) {
                 executeProxyCommand(cmdLine);
             }
             return;
         }
 
-        Optional<ServerGroup> groupOpt = ProxySettings.getServerGroups().stream()
+        Optional<ServerGroup> groupOpt = VelocitySettings.getServerGroups().stream()
                 .filter(g -> g.name().equalsIgnoreCase(target))
                 .findFirst();
         if (groupOpt.isEmpty()) {
@@ -195,7 +195,7 @@ public class ProxySyncPlugin implements BackendRegistry {
         }
 
         for (String serverName : groupOpt.get().servers()) {
-            if (serverName.equalsIgnoreCase(ProxySettings.PROXY_NAME)) {
+            if (serverName.equalsIgnoreCase(VelocitySettings.PROXY_NAME)) {
                 executeProxyCommand(cmdLine);
             } else {
                 this.serverManager.getMessageBroker().publishMessage(new CommandMessage(

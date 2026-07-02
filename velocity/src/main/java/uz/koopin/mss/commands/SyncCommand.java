@@ -4,8 +4,8 @@ import com.velocitypowered.api.command.SimpleCommand;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import uz.koopin.mss.ProxySettings;
-import uz.koopin.mss.ProxySyncPlugin;
+import uz.koopin.mss.VelocitySettings;
+import uz.koopin.mss.VelocitySyncPlugin;
 import uz.koopin.mss.messages.CommandMessage;
 import uz.koopin.mss.storage.ServerGroup;
 
@@ -16,9 +16,9 @@ import java.util.Locale;
 
 public class SyncCommand implements SimpleCommand {
 
-    private final ProxySyncPlugin plugin;
+    private final VelocitySyncPlugin plugin;
 
-    public SyncCommand(ProxySyncPlugin plugin) {
+    public SyncCommand(VelocitySyncPlugin plugin) {
         this.plugin = plugin;
     }
 
@@ -55,8 +55,8 @@ public class SyncCommand implements SimpleCommand {
         commandLine = String.join(" ", Arrays.copyOfRange(args, cmdStartIndex, args.length));
 
         CommandMessage message = new CommandMessage(
-                ProxySettings.PROJECT_NAME,
-                ProxySettings.PROXY_NAME,
+                VelocitySettings.PROJECT_NAME,
+                VelocitySettings.PROXY_NAME,
                 target,
                 isGroup,
                 commandLine
@@ -76,7 +76,7 @@ public class SyncCommand implements SimpleCommand {
             options.add("-g");
             options.add(CommandMessage.BROADCAST_TARGET);
             options.add("all");
-            options.add(ProxySettings.PROXY_NAME);
+            options.add(VelocitySettings.PROXY_NAME);
             for (RegisteredServer server : plugin.getServer().getAllServers()) {
                 options.add(server.getServerInfo().getName());
             }
@@ -85,7 +85,7 @@ public class SyncCommand implements SimpleCommand {
 
         if (args.length == 2 && args[0].equalsIgnoreCase("-g")) {
             List<String> groups = new ArrayList<>();
-            for (ServerGroup group : ProxySettings.getServerGroups()) {
+            for (ServerGroup group : VelocitySettings.getServerGroups()) {
                 groups.add(group.name());
             }
             return filterByPrefix(groups, args[1].toLowerCase(Locale.ROOT));
