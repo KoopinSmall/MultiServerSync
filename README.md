@@ -228,7 +228,7 @@ public class AlertPacket implements SyncPacket {
 
     @Override
     public void onReceive() {
-        SyncContext.current().get(MyService.class).broadcast(message);
+        Bukkit.getOnlinePlayers().forEach(player -> player.sendMessage(message));
     }
 }
 
@@ -260,10 +260,21 @@ bus.request(new PingPacket())
 bus.close();    // on shutdown
 ```
 
-Handlers get at your services through `SyncContext`, a plain process-wide service locator. Register what you need once at startup:
+Two things worth knowing about handlers:
+
+**Threading.** `onReceive()` and `handle()` run on the bus's dispatch thread, not on the server's main thread. `sendMessage` happens to be thread-safe on Paper, so the example above is fine as-is; for anything that touches world state (teleports, inventories, blocks) hop onto the main thread first: `Bukkit.getScheduler().runTask(plugin, () -> ...)`.
+
+**Cross-platform packets.** `AlertPacket` above calls Bukkit directly, which is fine as long as the packet only travels between Paper servers. But the same class runs `onReceive()` on *every* peer that gets the message — and if one of those peers is a proxy, there is no Bukkit there, only a `NoClassDefFoundError`. For packets shared between platforms, keep the packet class platform-free and reach the platform through `SyncContext`, a plain process-wide service locator: each side registers its own implementation at startup, and peers that never registered one silently skip the packet.
 
 ```java
-SyncContext.put(MyService.class, myServiceInstance);
+// at startup, on each side that should react (Paper here, Velocity would put its own):
+SyncContext.put(Broadcaster.class, new PaperBroadcaster());
+
+// in the packet — no platform imports, so the class loads anywhere:
+@Override
+public void onReceive() {
+    SyncContext.lookup(Broadcaster.class).ifPresent(b -> b.broadcast(message));
+}
 ```
 
 One gotcha worth repeating: a packet's class name **is** its wire identifier. Rename or move a packet class and you've broken every peer still running the old name. Keep packet types in a shared module and treat moving them like a protocol change.

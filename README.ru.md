@@ -228,7 +228,7 @@ public class AlertPacket implements SyncPacket {
 
     @Override
     public void onReceive() {
-        SyncContext.current().get(MyService.class).broadcast(message);
+        Bukkit.getOnlinePlayers().forEach(player -> player.sendMessage(message));
     }
 }
 
@@ -260,10 +260,21 @@ bus.request(new PingPacket())
 bus.close();    // при выключении
 ```
 
-Хендлеры достают твои сервисы через `SyncContext` — обычный process-wide service locator. Зарегистрируй что нужно один раз на старте:
+Про хендлеры стоит знать две вещи:
+
+**Потоки.** `onReceive()` и `handle()` выполняются на диспатч-потоке шины, а не на главном потоке сервера. `sendMessage` на Paper потокобезопасен, так что пример выше рабочий как есть; а вот всё, что трогает состояние мира (телепорты, инвентари, блоки), сначала перекинь на главный поток: `Bukkit.getScheduler().runTask(plugin, () -> ...)`.
+
+**Кроссплатформенные пакеты.** `AlertPacket` выше зовёт Bukkit напрямую — это нормально, пока пакет ходит только между Paper-серверами. Но тот же класс выполняет `onReceive()` на *каждом* пире, который получил сообщение, — и если один из этих пиров прокси, никакого Bukkit там нет, только `NoClassDefFoundError`. Для пакетов, общих между платформами, держи класс пакета свободным от платформенных импортов и выходи на платформу через `SyncContext` — обычный process-wide service locator: каждая сторона регистрирует свою реализацию на старте, а пиры, которые ничего не регистрировали, молча пропускают пакет.
 
 ```java
-SyncContext.put(MyService.class, myServiceInstance);
+// на старте, на каждой стороне, которая должна реагировать (тут Paper, Velocity положит свою):
+SyncContext.put(Broadcaster.class, new PaperBroadcaster());
+
+// в пакете — никаких платформенных импортов, класс загрузится где угодно:
+@Override
+public void onReceive() {
+    SyncContext.lookup(Broadcaster.class).ifPresent(b -> b.broadcast(message));
+}
 ```
 
 Грабли, которые стоит повторить: имя класса пакета **и есть** его идентификатор в протоколе. Переименуешь или перенесёшь класс пакета — сломаешь каждый пир, который ещё крутит старое имя. Держи типы пакетов в общем модуле и относись к их переносу как к изменению протокола.
